@@ -3,18 +3,15 @@ package com.example.helloworld;
 import com.example.helloworld.auth.ExampleAuthenticator;
 import com.example.helloworld.auth.ExampleAuthorizer;
 import com.example.helloworld.cli.RenderCommand;
+import com.example.helloworld.core.Cat;
 import com.example.helloworld.core.Person;
 import com.example.helloworld.core.Template;
 import com.example.helloworld.core.User;
+import com.example.helloworld.db.CatDAO;
 import com.example.helloworld.db.PersonDAO;
 import com.example.helloworld.filter.DateRequiredFeature;
 import com.example.helloworld.health.TemplateHealthCheck;
-import com.example.helloworld.resources.FilteredResource;
-import com.example.helloworld.resources.HelloWorldResource;
-import com.example.helloworld.resources.PeopleResource;
-import com.example.helloworld.resources.PersonResource;
-import com.example.helloworld.resources.ProtectedResource;
-import com.example.helloworld.resources.ViewResource;
+import com.example.helloworld.resources.*;
 import com.example.helloworld.tasks.EchoTask;
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
@@ -46,6 +43,19 @@ public class HelloWorldApplication extends Application<HelloWorldConfiguration> 
             }
         };
 
+    private final HibernateBundle<HelloWorldConfiguration> secondHibernateBundle =
+            new HibernateBundle<HelloWorldConfiguration>(Cat.class) {
+                @Override
+                public DataSourceFactory getDataSourceFactory(HelloWorldConfiguration configuration) {
+                    return configuration.getSecondDataSourceFactory();
+                }
+
+                @Override
+                public String name() {
+                    return "hibernate-second";
+                }
+            };
+
     @Override
     public String getName() {
         return "hello-world";
@@ -69,7 +79,19 @@ public class HelloWorldApplication extends Application<HelloWorldConfiguration> 
                 return configuration.getDataSourceFactory();
             }
         });
+        bootstrap.addBundle(new MigrationsBundle<HelloWorldConfiguration>() {
+            @Override
+            public DataSourceFactory getDataSourceFactory(HelloWorldConfiguration configuration) {
+                return configuration.getSecondDataSourceFactory();
+            }
+
+            @Override
+            public String name() {
+                return "second_db";
+            }
+        });
         bootstrap.addBundle(hibernateBundle);
+        bootstrap.addBundle(secondHibernateBundle);
         bootstrap.addBundle(new ViewBundle<HelloWorldConfiguration>() {
             @Override
             public Map<String, Map<String, String>> getViewConfiguration(HelloWorldConfiguration configuration) {
@@ -80,7 +102,8 @@ public class HelloWorldApplication extends Application<HelloWorldConfiguration> 
 
     @Override
     public void run(HelloWorldConfiguration configuration, Environment environment) {
-        final PersonDAO dao = new PersonDAO(hibernateBundle.getSessionFactory());
+        final PersonDAO personDAO = new PersonDAO(hibernateBundle.getSessionFactory());
+        final CatDAO catDAO = new CatDAO(secondHibernateBundle.getSessionFactory());
         final Template template = configuration.buildTemplate();
 
         environment.healthChecks().register("template", new TemplateHealthCheck(template));
@@ -96,8 +119,9 @@ public class HelloWorldApplication extends Application<HelloWorldConfiguration> 
         environment.jersey().register(new HelloWorldResource(template));
         environment.jersey().register(new ViewResource());
         environment.jersey().register(new ProtectedResource());
-        environment.jersey().register(new PeopleResource(dao));
-        environment.jersey().register(new PersonResource(dao));
+        environment.jersey().register(new PeopleResource(personDAO));
+        environment.jersey().register(new PersonResource(personDAO));
+        environment.jersey().register(new CatResource(catDAO));
         environment.jersey().register(new FilteredResource());
     }
 }

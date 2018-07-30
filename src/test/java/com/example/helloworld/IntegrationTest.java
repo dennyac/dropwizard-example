@@ -1,6 +1,7 @@
 package com.example.helloworld;
 
 import com.example.helloworld.api.Saying;
+import com.example.helloworld.core.Cat;
 import com.example.helloworld.core.Person;
 import io.dropwizard.testing.ConfigOverride;
 import io.dropwizard.testing.ResourceHelpers;
@@ -25,22 +26,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class IntegrationTest {
 
-    private static final String TMP_FILE = createTempFile();
+    private static final String DB_TMP_FILE = createTempFile("test-example");
+    private static final String DB_TMP_FILE_2 = createTempFile("test-example-second");
     private static final String CONFIG_PATH = ResourceHelpers.resourceFilePath("test-example.yml");
+    private static final String DB_MIGRATION_FILE_PATH = ResourceHelpers.resourceFilePath("migrations.xml");
+    private static final String SECOND_DB_MIGRATION_FILE_PATH = ResourceHelpers.resourceFilePath("migrations-second.xml");
 
     @ClassRule
     public static final DropwizardAppRule<HelloWorldConfiguration> RULE = new DropwizardAppRule<>(
             HelloWorldApplication.class, CONFIG_PATH,
-            ConfigOverride.config("database.url", "jdbc:h2:" + TMP_FILE));
+            ConfigOverride.config("database.url", "jdbc:h2:" + DB_TMP_FILE),
+            ConfigOverride.config("secondDatabase.url", "jdbc:h2:" + DB_TMP_FILE_2));
 
     @BeforeClass
     public static void migrateDb() throws Exception {
-        RULE.getApplication().run("db", "migrate", CONFIG_PATH);
+        RULE.getApplication().run("db", "migrate", CONFIG_PATH, "--migrations", DB_MIGRATION_FILE_PATH);
+        RULE.getApplication().run("second_db", "migrate", CONFIG_PATH, "--migrations", SECOND_DB_MIGRATION_FILE_PATH);
     }
 
-    private static String createTempFile() {
+    private static String createTempFile(String fileName) {
         try {
-            return File.createTempFile("test-example", null).getAbsolutePath();
+            return File.createTempFile(fileName, null).getAbsolutePath();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -66,6 +72,14 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testPostCat() throws Exception {
+        final Cat cat = new Cat("Simba", "Ocicat");
+        final Cat newCat = postCat(cat);
+        assertThat(newCat.getId()).isNotNull();
+        assertThat(newCat.getName()).isEqualTo(cat.getName());
+    }
+
+    @Test
     public void testRenderingPersonFreemarker() throws Exception {
         testRenderingPerson("view_freemarker");
     }
@@ -88,6 +102,13 @@ public class IntegrationTest {
                 .request()
                 .post(Entity.entity(person, MediaType.APPLICATION_JSON_TYPE))
                 .readEntity(Person.class);
+    }
+
+    private Cat postCat(Cat cat) {
+        return RULE.client().target("http://localhost:" + RULE.getLocalPort() + "/cats")
+                .request()
+                .post(Entity.entity(cat, MediaType.APPLICATION_JSON_TYPE))
+                .readEntity(Cat.class);
     }
 
     @Test

@@ -23,6 +23,10 @@ public class HelloWorldConfiguration extends Configuration {
     @NotNull
     private DataSourceFactory database = new DataSourceFactory();
 
+    @Valid
+    @NotNull
+    private DataSourceFactory secondDatabase = new DataSourceFactory();
+
     @NotNull
     private Map<String, Map<String, String>> viewRendererConfiguration = Collections.emptyMap();
 
@@ -58,6 +62,16 @@ public class HelloWorldConfiguration extends Configuration {
     @JsonProperty("database")
     public void setDataSourceFactory(DataSourceFactory dataSourceFactory) {
         this.database = dataSourceFactory;
+    }
+
+    @JsonProperty("secondDatabase")
+    public DataSourceFactory getSecondDataSourceFactory() {
+        return secondDatabase;
+    }
+
+    @JsonProperty("secondDatabase")
+    public void setSecondDataSourceFactory(DataSourceFactory dataSourceFactory) {
+        this.secondDatabase = dataSourceFactory;
     }
 
     @JsonProperty("viewRendererConfiguration")
