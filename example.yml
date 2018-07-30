@@ -17,6 +17,12 @@ database:
   # the JDBC URL
   url: jdbc:h2:./target/example
 
+secondDatabase:
+  driverClass: org.h2.Driver
+  user: sa-second
+  password: sa-second
+  url: jdbc:h2:./target/example-second
+
 # use the simple server factory if you only want to run on a single port
 #server:
 #  type: simple

@@ -25,6 +25,8 @@ of the PersonDAO in their constructors.
 
 As with all the modules the db example is wired up in the `initialize` function of the `HelloWorldApplication`.
 
+A second database along with associated migrations has been added to demonstrate talking to multiple databases.
+
 # Running The Application
 
 To test the example application run the following commands.
@@ -35,7 +37,8 @@ To test the example application run the following commands.
 
 * To setup the h2 database run.
 
-        java -jar target/dropwizard-example-$DW_VERSION.jar db migrate example.yml
+        java -jar target/dropwizard-example-1.3.5.jar db migrate example.yml --migrations ./src/main/resources/migrations.xml
+        java -jar target/dropwizard-example-1.3.5.jar second_db migrate example.yml --migrations ./src/main/resources/migrations-second.xml
 
 * To run the server run.
 

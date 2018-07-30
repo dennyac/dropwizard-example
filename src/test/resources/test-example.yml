@@ -7,6 +7,12 @@ database:
   password: sa
   url: jdbc:h2:./target/test-example
 
+secondDatabase:
+  driverClass: org.h2.Driver
+  user: sa-second
+  password: sa-second
+  url: jdbc:h2:./target/test-example-second
+
 server:
   applicationConnectors:
     - type: http
